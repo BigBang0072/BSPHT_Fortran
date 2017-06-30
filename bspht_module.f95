@@ -1,10 +1,68 @@
 module BSPHT
 contains
+!This will be used to complete teh spherical Harmnics of particular layer 
+!ie. Spherical Layer.
+subroutine SPH_transform(lat_length,bWidth,signal_r)
+    implicit none
+    integer,intent(in) :: lat_length,bWidth
+    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal_r 
+    
+    integer :: i,j
+    real*8,parameter :: pi=4*atan(1.0),tau=2*pi
+    real*8,dimension(0:lat_length-1) :: theta_j
+    
+    !This will do the FFT of all the rows. First Step to Successs.
+    call do_FFT(lat_length,bWidth,signal_r)
+    print *,"########"
+    do i=0,lat_length-1
+        do j=0,lat_length-1
+            print *,signal_r(i,j)
+        end do
+        print *,"******"
+    end do
+    print *,"########"
+    !now start the Shree Ganesh of our "Legendre" Transform.
+    call make_theta_j(lat_length,theta_j)
+    !do i=0,lat_length-1
+        !print *,theta_j(i)
+    !end do
+    print *,"HIK"
+    call naive_legendre_transform(lat_length,bWidth,cos(theta_j),signal_r)
+    print *,"KIH"
+    
+end subroutine SPH_transform
+
+!THis will be used in above to do the FFT of signal array.
+!Its for more abstraction.
+subroutine do_FFT(lat_length,bWidth,signal_r)
+    use FFT
+    implicit none
+    integer,intent(in) :: lat_length,bWidth
+    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout):: signal_r
+    
+    integer :: i,depth
+    integer,allocatable,dimension(:,:) :: dump_credential
+    real*8,parameter :: pi=4*atan(1.0),tau=2*pi
+    complex :: omega
+    complex,dimension(0:lat_length-1) :: temp_row
+    
+    omega=cmplx(cos(tau/lat_length),-sin(tau/lat_length)) !its 2B,So.
+    depth=log2(real(lat_length))
+    allocate(dump_credential(depth,3))
+    
+    do i=0,lat_length-1
+        call FFT1D(lat_length,depth,1,0,omega,dump_credential,&
+                    signal_r(i,0:lat_length-1),temp_row)
+        signal_r(i,0:lat_length-1)=temp_row
+    end do
+    deallocate(dump_credential)
+    
+end subroutine do_FFT
 
 !This function calculates the Legendre Transform "NAIVELY"
-subroutine naive_legendre_transform(lat_length,bWidth,m,theta_j,signal)
+subroutine naive_legendre_transform(lat_length,bWidth,theta_j,signal)
     implicit none
-    integer,intent(in) :: lat_length,bWidth,m
+    integer,intent(in) :: lat_length,bWidth
     real*8,dimension(0:lat_length-1),intent(in) :: theta_j
     !you know actually the m goes from -b to b not 0 to 2b-1.(down dim)
     complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal
@@ -20,35 +78,74 @@ subroutine naive_legendre_transform(lat_length,bWidth,m,theta_j,signal)
     call make_quadrature_weight(lat_length,weight_vector)
     !Traversing along the m which is already fourier transformed.
     do i=0,bWidth
+        print *,i,(lat_length-1)-i+1,bWidth,lat_length
         allocate(transform_matrix(i:bWidth-1,0:lat_length-1))
+        !print *,"Prep1"
         allocate(transform(i:bWidth-1))
+        !print *,"Prep2"
         call aLegendre_transform_matrix(i,bWidth,lat_length,theta_j,transform_matrix)
+        !print *,"Prepped"
         if(i==0)then
             transform=matmul(transform_matrix,&
                         weight_vector*signal(0:lat_length-1,i))
-            signal(0:lat_length-1,i)=0.0
-            signal(i:bWidth-1,i)=transform
+            !print *,"*******"
+            !print *,transform
+            !print *,"*******"
+            signal(0:lat_length-1,i)=cmplx(0.0,0.0)
+            !signal(i:bWidth-1,i)=transform(i:bWidth-1)
+            call copy_the_transform(i,i,lat_length,bWidth,signal,transform)
         else if(i==bWidth)then
-            signal(0:lat_length-1,i)=0.0
+            signal(0:lat_length-1,i)=cmplx(0.0,0.0)
         else
+            
             transform=matmul(transform_matrix,&
                         weight_vector*signal(0:lat_length-1,i))
-            signal(0:lat_length-1,i)=0.0
-            signal(i:bWidth-1,i)=transform
+            !print *,"1K"
+            signal(0:lat_length-1,i)=cmplx(0.0,0.0)
+            !print *,"2K"
+            !print *,"******"
+            !print *,transform
+            !print *,"******"
+            !signal(i:bWidth-1,i)=transform(i:bWidth-1)
+            call copy_the_transform(i,i,lat_length,bWidth,signal,transform)
+            !print *,"3K"
             transform=matmul(transform_matrix,&
                         weight_vector*signal(0:lat_length-1,(lat_length-1)-i+1))
+            !print *,"4K"
             transform=transform*(-1)**(i)
-            signal(0:lat_length-1,(lat_length-1)-i+1)=0.0
-            signal(i:bWidth-1,(lat_length-1)-i+1)=transform
+            !print *,"5K"
+            signal(0:lat_length-1,(lat_length-1)-i+1)=cmplx(0.0,0.0)
+            !print *,"******"
+            !print *,transform
+            !print *,"******"
+            !signal(i:bWidth-1,(lat_length-1)-i+1)=transform(i:bWidth-1)
+            call copy_the_transform(i,(lat_length-1)-i+1,lat_length,bWidth,signal,transform)
         end if
         deallocate(transform)
         deallocate(transform_matrix)
+        !print *,"end",i
     end do
     !For doing the subsampling and smoothing we have to subsample the
     !transform matrix and our weight*signal vector, then multiply 
     !with lesser number of sample.
     
 end subroutine naive_legendre_transform
+
+!thIS MODULE IS JUST TO COPY ELEMENTS FROM THE TRANSFORM TO signal
+!array. Some probelm is there in direct copyting.
+subroutine copy_the_transform(i,m,lat_length,bWidth,signal,transform)
+    implicit none
+    integer,intent(in) :: i,m,lat_length,bWidth
+    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal
+    complex,dimension(i:bWidth-1),intent(in) :: transform
+    
+    integer :: k
+    
+    do k=i,bWidth-1
+        signal(k,m)=transform(k)
+    end do
+    
+end subroutine copy_the_transform
 
 !This function create teh weight for integral approximation
 !using Chebyshev Quadrature.(Formula copied)
@@ -154,11 +251,18 @@ subroutine aLegendre_transform_matrix(m,bWidth,lat_length,arg,transform_matrix)
     Pm_m=((-1)**abs(m))*(double_factorial(2*abs(m)-1))*(1-arg**2)**(abs(m*1.0)/2)
     Pm_m1=arg*Pm_m*(2*abs(m)+1)
     
+     
     !print *,m,bWidth,double_factorial(2*abs(m)-1)
     !do i=0,lat_length-1
         !print *,arg(i),Pm_m(i)
     !end do
+    if(m==bWidth)then
+        return
+    end if
     transform_matrix(abs(m),0:lat_length-1)=Pm_m(0:lat_length-1)
+    if(m==bWidth-1)then
+        return
+    end if
     transform_matrix(abs(m)+1,0:lat_length-1)=Pm_m1(0:lat_length-1)
     !highest bandwidth ie l=bWidth-1
     ex_recurs=(bWidth-1)-abs(m)-1
@@ -171,6 +275,21 @@ subroutine aLegendre_transform_matrix(m,bWidth,lat_length,arg,transform_matrix)
     end do
     
 end subroutine aLegendre_transform_matrix
+
+!This is to create the argument for trasform matrix and all
+!Just to prettify the final subroutine,make it look modular.
+subroutine make_theta_j(lat_length,theta_j)
+    implicit none
+    integer :: i
+    integer,intent(in) :: lat_length
+    real*8,dimension(0:lat_length-1),intent(out) :: theta_j
+    real*8,parameter :: pi=4*atan(1.0)
+    
+    do i=0,lat_length-1
+        theta_j(i)=pi*(2*i+1)/(4*(lat_length/2))
+    end do
+    
+end subroutine make_theta_j
 
 !This is a subsidary function used in inner calculation of 
 !calculating Legendre polynomial.
