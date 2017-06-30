@@ -2,7 +2,7 @@ program test_legendre
     use BSPHT
     use FFT
     implicit none
-    integer,parameter :: m=3
+    integer,parameter :: m=2
     integer :: i,j
     !integer*8 :: j=9
     !lat: is latitude(direction of theta), long: longitude(direction of phi)
@@ -56,7 +56,7 @@ program test_legendre
     print *,"####################"
     do i=0,lat_length-1
         do j=0,lat_length-1
-            print *,"m =",i,"l =",j,"coeff =",signal_fft(j,i)
+            print *,"m =",i,", l =",j,", coeff =",signal_fft(j,i)
         end do
         print *,"***********"
     end do
