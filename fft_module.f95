@@ -10,11 +10,11 @@ subroutine FFT3D(dim1,dim2,dim3,signal_array,transform_array)
     integer ::i,j,k,depth1,depth2,depth3
     integer,intent(in) :: dim1,dim2,dim3
     integer,allocatable,dimension(:,:) :: dump_credential
-    complex,dimension(0:dim1-1,0:dim2-1,0:dim3-1),intent(in) :: signal_array
-    complex,dimension(0:dim1-1,0:dim2-1,0:dim3-1),intent(inout) :: transform_array
-    real*4,parameter :: pi=4*atan(1.0),tau=2*pi
-    complex :: omega1,omega2,omega3
-    complex,dimension(0:dim3-1) :: temp_depth
+    complex(8),dimension(0:dim1-1,0:dim2-1,0:dim3-1),intent(in) :: signal_array
+    complex(8),dimension(0:dim1-1,0:dim2-1,0:dim3-1),intent(inout) :: transform_array
+    real*8,parameter :: pi=4*atan(1.0),tau=2*pi
+    complex(8) :: omega1,omega2,omega3
+    complex(8),dimension(0:dim3-1) :: temp_depth
     
     omega3=cmplx(cos(tau/dim3),-sin(tau/dim3))
     depth3=log2(real(dim3))
@@ -46,13 +46,13 @@ subroutine FFT2D(dim1,dim2,signal_array,transform_array)
     implicit none
     integer :: i,j,depth2,depth1
     integer,intent(in) :: dim1,dim2
-    complex,dimension(0:dim1-1,0:dim2-1),intent(in) :: signal_array
-    complex,dimension(0:dim1-1,0:dim2-1),intent(inout) :: transform_array
+    complex(8),dimension(0:dim1-1,0:dim2-1),intent(in) :: signal_array
+    complex(8),dimension(0:dim1-1,0:dim2-1),intent(inout) :: transform_array
     integer,allocatable,dimension(:,:) :: dump_credential
-    real*4,parameter :: pi=4*atan(1.0),tau=2*pi
-    complex,dimension(0:dim1-1) :: temp_col !could use it to make code look cleaner
+    real*8,parameter :: pi=4*atan(1.0),tau=2*pi
+    complex(8),dimension(0:dim1-1) :: temp_col !could use it to make code look cleaner
     !but it could slow down and take memory according to dimension
-    complex :: omega1,omega2
+    complex(8) :: omega1,omega2
     
     omega1=cmplx(cos(tau/dim1),-sin(tau/dim1))
     omega2=cmplx(cos(tau/dim2),-sin(tau/dim2))
@@ -84,13 +84,13 @@ end subroutine FFT2D
 recursive subroutine FFT1D(total_length,total_depth,depth,start_index,omega,dump_credential,signal_array,transform_array)
     implicit none
     integer,intent(in) :: total_length,total_depth,depth,start_index
-    complex,dimension(0:total_length-1),intent(in) :: signal_array
+    complex(8),dimension(0:total_length-1),intent(in) :: signal_array
     integer :: stride_length
     integer,dimension(1:total_depth,3),intent(inout) :: dump_credential
     integer :: start1,end1,start2,end2,i,j,counter !for iterating and combining step
-    complex,dimension(0:total_length-1),intent(inout) :: transform_array
-    complex :: temp_up,temp_down
-    complex,intent(in) :: omega
+    complex(8),dimension(0:total_length-1),intent(inout) :: transform_array
+    complex(8) :: temp_up,temp_down
+    complex(8),intent(in) :: omega
     
     stride_length=2**depth    
     

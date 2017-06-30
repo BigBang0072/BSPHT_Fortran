@@ -5,7 +5,7 @@ contains
 subroutine SPH_transform(lat_length,bWidth,signal_r)
     implicit none
     integer,intent(in) :: lat_length,bWidth
-    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal_r 
+    complex(8),dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal_r 
     
     integer :: i,j
     real*8,parameter :: pi=4*atan(1.0),tau=2*pi
@@ -38,13 +38,13 @@ subroutine do_FFT(lat_length,bWidth,signal_r)
     use FFT
     implicit none
     integer,intent(in) :: lat_length,bWidth
-    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout):: signal_r
+    complex(8),dimension(0:lat_length-1,0:lat_length-1),intent(inout):: signal_r
     
     integer :: i,depth
     integer,allocatable,dimension(:,:) :: dump_credential
     real*8,parameter :: pi=4*atan(1.0),tau=2*pi
-    complex :: omega
-    complex,dimension(0:lat_length-1) :: temp_row
+    complex(8) :: omega
+    complex(8),dimension(0:lat_length-1) :: temp_row
     
     omega=cmplx(cos(tau/lat_length),-sin(tau/lat_length)) !its 2B,So.
     depth=log2(real(lat_length))
@@ -65,12 +65,12 @@ subroutine naive_legendre_transform(lat_length,bWidth,theta_j,signal)
     integer,intent(in) :: lat_length,bWidth
     real*8,dimension(0:lat_length-1),intent(in) :: theta_j
     !you know actually the m goes from -b to b not 0 to 2b-1.(down dim)
-    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal
+    complex(8),dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal
     
     integer :: i
     real*8,allocatable,dimension(:,:) :: transform_matrix
     real*8,dimension(0:lat_length-1) :: weight_vector
-    complex,allocatable,dimension(:) :: transform
+    complex(8),allocatable,dimension(:) :: transform
     
     
     !m:bWidth-1,0:lat_length-1
@@ -136,8 +136,8 @@ end subroutine naive_legendre_transform
 subroutine copy_the_transform(i,m,lat_length,bWidth,signal,transform)
     implicit none
     integer,intent(in) :: i,m,lat_length,bWidth
-    complex,dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal
-    complex,dimension(i:bWidth-1),intent(in) :: transform
+    complex(8),dimension(0:lat_length-1,0:lat_length-1),intent(inout) :: signal
+    complex(8),dimension(i:bWidth-1),intent(in) :: transform
     
     integer :: k
     
