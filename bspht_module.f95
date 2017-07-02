@@ -23,7 +23,7 @@ subroutine SpBessel_transform(l,length,delta_r,signal_array,transform_array)
     
     small_n=l/2
     !small_n_max=l_max
-    allocate(current_segment(0:small_n+1))
+    !allocate(current_segment(0:small_n+1))
     allocate(interpolation_table(0:length-1,0:3,0:1)) !There is cubic interpolation.
     allocate(integration_table(0:length-1,0:small_n,0:1))
     
@@ -37,7 +37,7 @@ subroutine SpBessel_transform(l,length,delta_r,signal_array,transform_array)
     !We will be going with P=3 degree interpolation.
     call generate_DCST_transforms(length,delta_r,signal_array,dcst_transforms)
     !Getting the coefficient of local interpolation 
-    call segment_coefficient(length,delta_r,k_values,signal,dcst_transforms,interpolation_table)
+    call segment_coefficient(length,delta_r,k_values,signal_array,dcst_transforms,interpolation_table)
     !Have to integrate segments.
     call segment_integration(small_n,length,k_values,interpolation_table,integration_table)
     
@@ -48,12 +48,12 @@ subroutine SpBessel_transform(l,length,delta_r,signal_array,transform_array)
         transform_array(i)=0
         do j=0,small_n
             if(mod(l,2)==0)then
-                transform_array(i)=transform(i)+((-1)**j)*double_factorial(2*small_n+2*j-1)/&
-                    (factorial(2*j))/(double_factorial(2*small_n-2*j))/(k_value(i)**(2*j+1))*&
+                transform_array(i)=transform_array(i)+((-1)**j)*double_factorial(2*small_n+2*j-1)/&
+                    (factorial(2*j))/(double_factorial(2*small_n-2*j))/(k_values(i)**(2*j+1))*&
                     integration_table(i,j,0)
             else if(mod(l,2)/=0)then
-                transform_array(i)=transform(i)+((-1)**j)*double_factorial(2*small_n+2*j+1)/&
-                    (factorial(2*j+1))/double_factorial(2*small_n-2*j)/(k_value(i)**(2*j+2))*&
+                transform_array(i)=transform_array(i)+((-1)**j)*double_factorial(2*small_n+2*j+1)/&
+                    (factorial(2*j+1))/double_factorial(2*small_n-2*j)/(k_values(i)**(2*j+2))*&
                     integration_table(i,j,1)
             end if
         end do
@@ -65,7 +65,7 @@ end subroutine SpBessel_transform
 subroutine segment_integration (small_n,length,k_values,interpolation_table,integration_table)
     implicit none
     integer,intent(in) :: small_n,length
-    real*8,dimension(0:lenght-1) :: k_values
+    real*8,dimension(0:length-1) :: k_values
     complex(8),dimension(0:length-1,0:small_n,0:1),intent(out) :: integration_table
     complex(8),dimension(0:length-1,0:3,0:1),intent(in) :: interpolation_table
     
@@ -98,9 +98,9 @@ end subroutine segment_integration
 complex function integrate_func(i,j,OE_flag,length,k_values,interpolation_table) result(final)
     !E=0,O=1 : the OE flag.
     implicit none
-    integer,intent(in) :: i,j,OE_flag
+    integer,intent(in) :: i,j,OE_flag,length
     real*8,dimension(0:length-1),intent(in) :: k_values
-    complex(8),dimension(0:lenght-1,0:3,0:1),intent(in) :: interpolation_table
+    complex(8),dimension(0:length-1,0:3,0:1),intent(in) :: interpolation_table
     
     integer :: power
     real*8 :: k0,k1
@@ -108,13 +108,13 @@ complex function integrate_func(i,j,OE_flag,length,k_values,interpolation_table)
     
     power=2*j+OE_flag
     k0=k_values(i-1)
-    k1=k_value(i)
+    k1=k_values(i)
     
     coff0=interpolation_table(i,0,OE_flag)-interpolation_table(i,1,OE_flag)*&
         k0+interpolation_table(i,2,OE_flag)*(k0**2)-interpolation_table(i,3,OE_flag)*(k0**3)
     coff1=interpolation_table(i,1,OE_flag)-2*interpolation_table(i,2,OE_flag)*(k0)&
         +3*interpolation_table(i,3,OE_flag)*(k0**2)
-    coff2=inteerpolation_table(i,2,OE_flag)-3*interpolation_table(i,3,OE_flag)*(k0) 
+    coff2=interpolation_table(i,2,OE_flag)-3*interpolation_table(i,3,OE_flag)*(k0) 
     coff3=interpolation_table(i,3,OE_flag)
     
     final=coff0/(power+1)*(k1**(power+1)-k0**(power+1))+&
@@ -134,9 +134,11 @@ subroutine segment_coefficient(length,delta_r,k_values,signal,dcst_transforms,in
     real*8 :: o_gamma,temp !For first segment coefficient.
     real*8,dimension(0:length-1,0:5) :: r_power
     
+    real*8,intent(in) :: delta_r
     real*8,dimension(0:length-1),intent(in) :: k_values
+    complex(8),dimension(0:length-1),intent(in) :: signal
     complex(8),dimension(0:1,0:length-1,0:2),intent(in) :: dcst_transforms
-    complex(8),dimension(0:length-1,0:3),intent(out) :: interpolation_table
+    complex(8),dimension(0:length-1,0:3,0:1),intent(out) :: interpolation_table
     
     !Construct r-array for the zeros-k1 interpolation
     do i=0,length-1
@@ -181,7 +183,7 @@ subroutine segment_coefficient(length,delta_r,k_values,signal,dcst_transforms,in
         end if
     end do
     
-end subroutine integrate_segment
+end subroutine segment_coefficient
 
 subroutine generate_DCST_transforms(length,delta_r,signal,dcst_transforms)
     use FFT
