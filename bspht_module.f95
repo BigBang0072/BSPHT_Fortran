@@ -1,5 +1,224 @@
 module BSPHT
 contains
+
+!For all the ls in the signal we ahve to do this.
+
+
+! @ PARTICULAR "l"
+!This subroutine contains the Bessel transform to be done after 
+!Spherical Transform for a particular m,l.
+subroutine SpBessel_transform(l,length,delta_r,signal_array,transform_array)
+    use FFT
+    implicit none
+    integer,intent(in) :: l,length
+    real*8,intent(in) :: delta_r
+    complex(8),dimension(0:length-1),intent(in) ::  signal_array
+    complex(8),dimension(0:length-1),intent(out) :: transform_array
+    
+    integer :: i,j,small_n,small_n_max
+    real*8,dimension(0:length-1) :: k_values
+    complex(8),allocatable,dimension(:,:,:) :: interpolation_table
+    complex(8),dimension(0:1,0:length-1,0:2) :: dcst_transforms
+    complex(8),allocatable,dimension(:,:,:) :: integration_table
+    
+    small_n=l/2
+    !small_n_max=l_max
+    allocate(current_segment(0:small_n+1))
+    allocate(interpolation_table(0:length-1,0:3,0:1)) !There is cubic interpolation.
+    allocate(integration_table(0:length-1,0:small_n,0:1))
+    
+    ! All the (N) k values, well within the Nyquist frequency
+    do i=0,length-1
+        k_values(i)=((i+(1.0/2.0))/(length-(1.0/2.0)))/(2*delta_r)
+    end do
+    
+    !Call for the dcst_transforms ,and calculate for intepolating also,the differentiated
+    !transform and save it in 3 d matrix. sin,cos ;sin',cos' ;sin'',cos''
+    !We will be going with P=3 degree interpolation.
+    call generate_DCST_transforms(length,delta_r,signal_array,dcst_transforms)
+    !Getting the coefficient of local interpolation 
+    call segment_coefficient(length,delta_r,k_values,signal,dcst_transforms,interpolation_table)
+    !Have to integrate segments.
+    call segment_integration(small_n,length,k_values,interpolation_table,integration_table)
+    
+    !Now we have to do the weighted average over all n to get the transform for a 
+    !particular "K", for this particular "l" !!!!!!!! (Remember).
+    
+    do i=0,length-1
+        transform_array(i)=0
+        do j=0,small_n
+            if(mod(l,2)==0)then
+                transform_array(i)=transform(i)+((-1)**j)*double_factorial(2*small_n+2*j-1)/&
+                    (factorial(2*j))/(double_factorial(2*small_n-2*j))/(k_value(i)**(2*j+1))*&
+                    integration_table(i,j,0)
+            else if(mod(l,2)/=0)then
+                transform_array(i)=transform(i)+((-1)**j)*double_factorial(2*small_n+2*j+1)/&
+                    (factorial(2*j+1))/double_factorial(2*small_n-2*j)/(k_value(i)**(2*j+2))*&
+                    integration_table(i,j,1)
+            end if
+        end do
+    end do
+    
+end subroutine SpBessel_transform
+
+!Integrating the segments, for different n and different k in one go.
+subroutine segment_integration (small_n,length,k_values,interpolation_table,integration_table)
+    implicit none
+    integer,intent(in) :: small_n,length
+    real*8,dimension(0:lenght-1) :: k_values
+    complex(8),dimension(0:length-1,0:small_n,0:1),intent(out) :: integration_table
+    complex(8),dimension(0:length-1,0:3,0:1),intent(in) :: interpolation_table
+    
+    integer :: i,j
+    do i=0,length-1
+        do j=0,small_n
+            if(i==0)then
+                !EVEN l (00:gamma2,10:g4,20:g6)
+                integration_table(i,j,0)=interpolation_table(i,0,0)*(k_values(i)**(2*j+1))/&
+                    (2*j+1)-interpolation_table(i,1,0)*(k_values(i)**(2*j+3))/(2*(2*j+3))+&
+                    interpolation_table(i,2,0)*(k_values(i)**(2*j+5))/(24*(2*j+5))
+                !ODD l (01:g3,11:g5,21:g7)
+                integration_table(i,j,1)=interpolation_table(i,0,1)*(k_values(i)**(2*j+1+2))/&
+                    (2*j+1+2)-interpolation_table(i,1,1)*(k_values(i)**(2*j+1+4))/(6*(2*j+1+4))+&
+                    interpolation_table(i,2,1)*(k_values(i)**(2*j+1+6))/(120*(2*j+1+6))
+            else
+                !EVEN
+                integration_table(i,j,0)=integration_table(i-1,j,0)+&
+                         (integrate_func(i,j,0,length,k_values,interpolation_table))
+                !ODD
+                integration_table(i,j,1)=integration_table(i-1,j,1)+&
+                         (integrate_func(i,j,1,length,k_values,interpolation_table))
+            end if
+        end do
+    end do
+    
+end subroutine segment_integration
+
+!Just to ease off above calcuation.
+complex function integrate_func(i,j,OE_flag,length,k_values,interpolation_table) result(final)
+    !E=0,O=1 : the OE flag.
+    implicit none
+    integer,intent(in) :: i,j,OE_flag
+    real*8,dimension(0:length-1),intent(in) :: k_values
+    complex(8),dimension(0:lenght-1,0:3,0:1),intent(in) :: interpolation_table
+    
+    integer :: power
+    real*8 :: k0,k1
+    complex(8) :: coff0,coff1,coff2,coff3
+    
+    power=2*j+OE_flag
+    k0=k_values(i-1)
+    k1=k_value(i)
+    
+    coff0=interpolation_table(i,0,OE_flag)-interpolation_table(i,1,OE_flag)*&
+        k0+interpolation_table(i,2,OE_flag)*(k0**2)-interpolation_table(i,3,OE_flag)*(k0**3)
+    coff1=interpolation_table(i,1,OE_flag)-2*interpolation_table(i,2,OE_flag)*(k0)&
+        +3*interpolation_table(i,3,OE_flag)*(k0**2)
+    coff2=inteerpolation_table(i,2,OE_flag)-3*interpolation_table(i,3,OE_flag)*(k0) 
+    coff3=interpolation_table(i,3,OE_flag)
+    
+    final=coff0/(power+1)*(k1**(power+1)-k0**(power+1))+&
+            coff1/(power+2)*(k1**(power+2)-k0**(power+2))+&
+            coff2/(power+3)*(k1**(power+3)-k0**(power+3))+&
+            coff3/(power+4)*(k1**(power+4)-k0**(power+4))
+    
+end function  integrate_func
+
+!get integral done for all j upto small_n(not here)
+!Just interpolating the functions between the segment using cubic polynomial
+!So findgin the coefficient of teh interpolation.
+subroutine segment_coefficient(length,delta_r,k_values,signal,dcst_transforms,interpolation_table)
+    implicit none
+    integer :: i
+    integer,intent(in) :: length
+    real*8 :: o_gamma,temp !For first segment coefficient.
+    real*8,dimension(0:length-1,0:5) :: r_power
+    
+    real*8,dimension(0:length-1),intent(in) :: k_values
+    complex(8),dimension(0:1,0:length-1,0:2),intent(in) :: dcst_transforms
+    complex(8),dimension(0:length-1,0:3),intent(out) :: interpolation_table
+    
+    !Construct r-array for the zeros-k1 interpolation
+    do i=0,length-1
+        temp=(i+(1.0/2.0))*delta_r
+        !for both even and odd case.
+        r_power(i,0:5)=(/temp**2,temp**4,temp**6,temp**3,temp**5,temp**7/)
+    end do
+    
+    do i=0,length-1
+        if(i==0)then
+            !Only three coefficient are there in case of this interval of integ.
+            !There is difference in position of cos and sine here and in dcst matrix
+            !There 0: sine(accordingg to 1st val) here 0:cos (according to n)
+            !Even case
+            interpolation_table(i,0,0)=sum(signal*r_power(0:length-1,0))
+            interpolation_table(i,1,0)=sum(signal*r_power(0:length-1,1))
+            interpolation_table(i,2,0)=sum(signal*r_power(0:length-1,2))
+            !Odd case
+            interpolation_table(i,0,1)=sum(signal*r_power(0:length-1,3))
+            interpolation_table(i,1,1)=sum(signal*r_power(0:length-1,4))
+            interpolation_table(i,2,1)=sum(signal*r_power(0:length-1,5))
+        else
+            !Even Case
+            interpolation_table(i,0,0)=dcst_transforms(1,i-1,0)
+            interpolation_table(i,1,0)=dcst_transforms(1,i-1,1)
+            interpolation_table(i,2,0)=3*(dcst_transforms(1,i,0)-dcst_transforms(1,i-1,0))/&
+                    (k_values(i)-k_values(i-1))**2-(dcst_transforms(1,i,1)-dcst_transforms(1,i-1,1))/&
+                    (k_values(i)-k_values(i-1))
+            interpolation_table(i,3,0)=(-2)*(dcst_transforms(1,i,0)-dcst_transforms(1,i-1,0))/&
+                    (k_values(i)-k_values(i-1))**3+(dcst_transforms(1,i,1)+dcst_transforms(1,i-1,1))/&
+                    (k_values(i)-k_values(i-1))**2
+            !Odd case
+            interpolation_table(i,0,1)=dcst_transforms(0,i-1,0)
+            interpolation_table(i,1,1)=dcst_transforms(0,i-1,1)
+            interpolation_table(i,2,1)=3*(dcst_transforms(0,i,0)-dcst_transforms(0,i-1,0))/&
+                    (k_values(i)-k_values(i-1))**2-(dcst_transforms(0,i,1)-dcst_transforms(0,i-1,1))/&
+                    (k_values(i)-k_values(i-1))
+            interpolation_table(i,3,1)=(-2)*(dcst_transforms(0,i,0)-dcst_transforms(0,i-1,0))/&
+                    (k_values(i)-k_values(i-1))**3+(dcst_transforms(0,i,1)+dcst_transforms(0,i-1,1))/&
+                    (k_values(i)-k_values(i-1))**2
+            
+        end if
+    end do
+    
+end subroutine integrate_segment
+
+subroutine generate_DCST_transforms(length,delta_r,signal,dcst_transforms)
+    use FFT
+    implicit none
+    integer,intent(in) ::length
+    real*8,intent(in) :: delta_r
+    complex(8),dimension(0:1,0:length-1,0:2),intent(out) :: dcst_transforms
+    complex(8),dimension(0:length-1),intent(in) :: signal
+    
+    real*8,dimension(0:length-1,0:length-1) :: transform_matrix
+    
+    !Now generating the transform matrix to do the transform of the data.
+    !The sequence is maintained. THe derivative of first layer is just behind it.
+    
+    !First filling the sine part.
+    call make_transform_matrix(0,length,transform_matrix)
+    call customized_DCST1D(length,delta_r,2,signal,transform_matrix,&
+                            dcst_transforms(0,0:length-1,0))
+    call customized_DCST1D(length,delta_r,3,signal,transform_matrix,&
+                            dcst_transforms(1,0:length-1,1))
+    dcst_transforms(1,0:length-1,1)=dcst_transforms(1,0:length-1,1)*(-1)
+    call customized_DCST1D(length,delta_r,4,signal,transform_matrix,&
+                            dcst_transforms(0,0:length-1,2))  
+    dcst_transforms(0,0:length-1,2)=dcst_transforms(0,0:length-1,2)*(-1)
+    
+    ! Now Filling the cos part
+    call make_transform_matrix(1,length,transform_matrix)
+    call customized_DCST1D(length,delta_r,2,signal,transform_matrix,&
+                            dcst_transforms(1,0:length-1,0))
+    call customized_DCST1D(length,delta_r,3,signal,transform_matrix,&
+                            dcst_transforms(0,0:length-1,1))
+    call customized_DCST1D(length,delta_r,4,signal,transform_matrix,&
+                            dcst_transforms(1,0:length-1,2))
+    dcst_transforms(1,0:length-1,2)=dcst_transforms(1,0:length-1,2)*(-1)
+    
+end subroutine generate_DCST_transforms
+
 !This will be used to complete teh spherical Harmnics of particular layer 
 !ie. Spherical Layer.
 subroutine SPH_transform(lat_length,bWidth,signal_r)
@@ -302,11 +521,25 @@ integer*8 function double_factorial(num)
     temp=1
     !  DEFINITION :   (-1)!! =1,  (0)!! =1
     do i=1,num
-        if(mod(i,2)/=0)then
+        if(mod(num,2)/=0 .and. mod(i,2)/=0)then
+            temp=temp*i
+        else if(mod(num,2)==0 .and. mod(i,2)==0)then
             temp=temp*i
         end if
     end do
     double_factorial=temp
+    
 end function double_factorial
+
+integer*8 function factorial(num)
+    implicit none
+    integer,intent(in) :: num
+    integer :: i
+    
+    factorial=1
+    do i=1,num
+        factorial=factorial*i
+    end do
+end function factorial
 
 end module BSPHT

@@ -183,4 +183,56 @@ integer function log2(x)
     
 end function log2
 
+!This module calcuates the DCT transform but "naively".
+!May implement using FFT.
+!But naive one will be good if we want to integrate the 
+!boundary specified wavenumber restriction on Bessel basis.
+!For doing this transform it is specifically multip. by power of r
+!based on the degree of the requirement.
+subroutine customized_DCST1D(length,delta_r,r_power,signal,transform_matrix,transform)
+    implicit none
+    integer,intent(in) :: length,r_power
+    real*8,intent(in) :: delta_r
+    real*8,dimension(0:length-1,0:length-1),intent(inout) :: transform_matrix
+    complex(8),dimension(0:length-1),intent(in) :: signal
+    complex(8),dimension(0:length-1),intent(out) :: transform
+    
+    integer :: i
+    real*8,dimension(0:length-1) :: power_array
+    !Constricting the exter multiplication of r array.
+    do i=0,length-1
+        power_array(i)=((i+(1.0/2.0))*delta_r)**r_power
+    end do
+    
+    !Now doing the transform
+    transform=matmul(transform_matrix,power_array*signal)
+    
+end subroutine customized_DCST1D
+
+!We dont need to make new transform matrix each time. Basically its gonna be same each time
+!between different k where we want to find them.
+subroutine make_transform_matrix(type_flag,length,transform_matrix)
+    !type_flag : which transform we want to do. (sin=0,cos=1)(Remember! :o)
+    implicit none
+    integer ::  i,j
+    integer,intent(in) ::length,type_flag!Its gonnal be fixes for all l.(basically num_sphere)
+    !This is equal sized transform. N->N element mapping.
+    real*8,dimension(0:length-1,0:length-1),intent(out) :: transform_matrix
+    real*8,parameter :: pi=4*atan(1.0),tau=2*pi
+    
+    !Constructing the transfrom Matrix
+    do i=0,length-1
+        do j=0,length-1
+            if(type_flag==0)then
+                transform_matrix(i,j)=sin(pi*(i+(1.0/2.0))*(j+(1.0/2.0))/&
+                                                    (length-(1.0/2.0)))
+            else if(type_flag==1)then
+                transform_matrix(i,j)=cos(pi*(i+(1.0/2.0))*(j+(1.0/2.0))/&
+                                                    (length-(1.0/2.0)))
+            end if
+        end do
+    end do
+    
+end subroutine make_transform_matrix
+
 end module FFT
