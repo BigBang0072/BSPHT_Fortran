@@ -2,20 +2,20 @@ program test_legendre
     use BSPHT
     use FFT
     implicit none
-    integer,parameter :: m=4
+    integer,parameter :: m=5
     integer :: i,j
     !integer*8 :: j=9
     !lat: is latitude(direction of theta), long: longitude(direction of phi)
-    integer,parameter :: lat_length=16,bandwidth=lat_length/2 
+    integer,parameter :: lat_length=8,bandwidth=lat_length/2 
     
     real*8,parameter :: pi=4*atan(1.0),tau=2*pi
     real*8,dimension(0:lat_length-1) :: theta_j,sig,weigh
     
     !Remember the dimension starts from m. So change.
-    !real*8,dimension(m:bandwidth-1,0:lat_length-1) :: trans
-    !real*8,dimension(m:bandwidth-1) :: ans
-    !complex,dimension(0:lat_length-1) :: signal
-    complex(8),dimension(0:lat_length-1,0:lat_length-1) :: signal_fft,transform_fft
+    real*8,dimension(m:bandwidth-1,0:lat_length-1) :: trans
+    real*8,dimension(m:bandwidth-1) :: ans
+    complex,dimension(0:lat_length-1) :: signal
+    complex,dimension(0:lat_length-1,0:lat_length-1) :: signal_fft,transform_fft
     
     do i=0,lat_length-1
         theta_j(i)=pi*(2*i+1)/(4*bandwidth)
@@ -32,15 +32,10 @@ program test_legendre
     !call aLegendre_transform_matrix(m,bandwidth,lat_length,cos(theta_j),trans)
         
     
-    !(cos(pi*(2*i+1)/(4*bandwidth)))
+    
     do i=0,lat_length-1
         do j=0,lat_length-1
-            signal_fft(i,j)=(3465.0/8.0)*(27*cos(pi*(2*i+1)/(4*bandwidth))+13*cos(pi*3*(2*i+1)/(4*bandwidth)))*&
-                                (sin(pi*(2*i+1)/(4*bandwidth))**2)**(2)*&
-                                  cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))
-            !signal_fft(i,j)=(15)*cos(pi*(2*i+1)/(4*bandwidth))*&
-             !                   (sin(pi*(2*i+1)/(4*bandwidth))**2)*&
-             !                   cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))
+            signal_fft(i,j)=cmplx(cos(j*tau/lat_length),0.0)
             !transform_fft(i,j)=cmplx(0.0,0.0)
         end do
     end do
@@ -53,13 +48,12 @@ program test_legendre
     end do
     
     
-    !call do_FFT(lat_length,bandwidth,signal_fft)
-    call SPH_transform(lat_length,bandwidth,signal_fft)
+    call do_FFT(lat_length,bandwidth,signal_fft)
     
     print *,"####################"
     do i=0,lat_length-1
         do j=0,lat_length-1
-            print *,"m =",i,", l =",j,", coeff =",signal_fft(j,i)
+            print *,signal_fft(i,j)
         end do
         print *,"***********"
     end do

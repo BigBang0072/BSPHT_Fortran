@@ -1,0 +1,3 @@
+signal_fft(i,j)=(3465.0/8.0)*(27*cos(pi*(2*i+1)/(4*bandwidth))+13*cos(pi*3*(2*i+1)/(4*bandwidth)))*&
+                                (sin(pi*(2*i+1)/(4*bandwidth))**2)**(2)*&
+                                  cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))

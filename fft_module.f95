@@ -189,6 +189,9 @@ end function log2
 !boundary specified wavenumber restriction on Bessel basis.
 !For doing this transform it is specifically multip. by power of r
 !based on the degree of the requirement.
+
+!Correctly working individually, both real and complex part.
+!Yeah it takes time to think.
 subroutine customized_DCST1D(length,delta_r,r_power,signal,transform_matrix,transform)
     implicit none
     integer,intent(in) :: length,r_power
@@ -196,19 +199,33 @@ subroutine customized_DCST1D(length,delta_r,r_power,signal,transform_matrix,tran
     real*8,dimension(0:length-1,0:length-1),intent(inout) :: transform_matrix
     complex(8),dimension(0:length-1),intent(in) :: signal
     complex(8),dimension(0:length-1),intent(out) :: transform
+    complex(8),dimension(0:length-1) :: temp0
     
-    integer :: i
+    integer :: i,j
     real*8,dimension(0:length-1) :: power_array
     !Constricting the exter multiplication of r array.
     do i=0,length-1
         power_array(i)=((i+(1.0/2.0))*delta_r)**r_power
     end do
-    
+    temp0=power_array*signal
     !Now doing the transform
     transform=matmul(transform_matrix,power_array*signal)
     
+    print *,""
+    print *,"Inside DCST cant"
+    do i=0,length-1
+        do j=0,length-1
+            !print *,i,j,transform_matrix(i,j)
+        end do
+    end do
+    
+    do i=0,length-1
+        !print *,i,signal(i),temp0(i),transform(i)
+    end do
+    print *,"Leaving DCST cant"
 end subroutine customized_DCST1D
 
+!***K-USED
 !We dont need to make new transform matrix each time. Basically its gonna be same each time
 !between different k where we want to find them.
 subroutine make_transform_matrix(type_flag,length,transform_matrix)
