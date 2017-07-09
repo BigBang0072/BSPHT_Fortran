@@ -402,7 +402,7 @@ subroutine SPH_transform(lat_length,bWidth,signal_r)
     
     !This will do the FFT of all the rows. First Step to Successs.
     call do_FFT(lat_length,bWidth,signal_r)
-    print *,"########"
+    print *,"######## After FFT of latitudes"
     do i=0,lat_length-1
         do j=0,lat_length-1
             print *,signal_r(i,j)
@@ -654,18 +654,18 @@ subroutine aLegendre_transform_matrix(m,bWidth,lat_length,arg,transform_matrix)
     end if
     !******IMP******
     !Adding the normalization constant here only rather than multiplying it later in teh signal.
-    transform_matrix(abs(m),0:lat_length-1)=Pm_m(0:lat_length-1)!*(((2*abs(m)+1)/(4*pi)/factorial(2*abs(m)))**(1.0/2.0))
+    transform_matrix(abs(m),0:lat_length-1)=Pm_m(0:lat_length-1)*(((2*abs(m)+1)/(4*pi)/factorial(2*abs(m)))**(1.0/2.0))
     if(m==bWidth-1)then
         return
     end if
-    transform_matrix(abs(m)+1,0:lat_length-1)=Pm_m1(0:lat_length-1)!*(((2*(abs(m)+1)+1)/(4*pi)/factorial(2*abs(m)+1))**(1.0/2.0))
+    transform_matrix(abs(m)+1,0:lat_length-1)=Pm_m1(0:lat_length-1)*(((2*(abs(m)+1)+1)/(4*pi)/factorial(2*abs(m)+1))**(1.0/2.0))
     !highest bandwidth ie l=bWidth-1
     ex_recurs=(bWidth-1)-abs(m)-1
     !print *,ex_recurs
     do i=1,ex_recurs
         Pm_temp=(arg*(2*(abs(m)+i+1)-1)*Pm_m1-((abs(m)+i+1)+abs(m)-1)*Pm_m)/((abs(m)+i+1)-abs(m))
-        transform_matrix(abs(m)+1+i,0:lat_length-1)=Pm_temp(0:lat_length-1)!*(((2*(abs(m)+i+1)+1)/(4*pi)*&
-                                                       !factorial((abs(m)+i+1)-abs(m))/factorial((abs(m)+i+1)-abs(m)))**(1.0/2.0))
+        transform_matrix(abs(m)+1+i,0:lat_length-1)=Pm_temp(0:lat_length-1)*(((2*(abs(m)+i+1)+1)/(4*pi)*&
+                                                       factorial((abs(m)+i+1)-abs(m))/factorial((abs(m)+i+1)-abs(m)))**(1.0/2.0))
         Pm_m=Pm_m1
         Pm_m1=Pm_temp
     end do

@@ -2,7 +2,7 @@ program test_legendre
     use BSPHT
     use FFT
     implicit none
-    integer,parameter :: m=4
+    integer,parameter :: m=0
     integer :: i,j
     !integer*8 :: j=9
     !lat: is latitude(direction of theta), long: longitude(direction of phi)
@@ -35,13 +35,15 @@ program test_legendre
     !(cos(pi*(2*i+1)/(4*bandwidth)))
     do i=0,lat_length-1
         do j=0,lat_length-1
-            signal_fft(i,j)=(3465.0/8.0)*(27*cos(pi*(2*i+1)/(4*bandwidth))+13*cos(pi*3*(2*i+1)/(4*bandwidth)))*&
-                                (sin(pi*(2*i+1)/(4*bandwidth))**2)**(2)*&
-                                  cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))
+            !signal_fft(i,j)=(3465.0/8.0)*(27*cos(pi*(2*i+1)/(4*bandwidth))+13*cos(pi*3*(2*i+1)/(4*bandwidth)))*&
+                                !(sin(pi*(2*i+1)/(4*bandwidth))**2)**(2)*&
+                                  !cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))
             !signal_fft(i,j)=(15)*cos(pi*(2*i+1)/(4*bandwidth))*&
              !                   (sin(pi*(2*i+1)/(4*bandwidth))**2)*&
              !                   cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))
-            !transform_fft(i,j)=cmplx(0.0,0.0)
+            !signal_fft(i,j)=cmplx(1.0,0.0)
+            signal_fft(i,j)=(1.0/4.0)*(1+3*cos(pi*2*(2*i+1)/(4*bandwidth)))*&
+                                cmplx(cos(2*pi*m*j/(2*bandwidth)),sin(2*pi*m*j/(2*bandwidth)))
         end do
     end do
     do i=0,lat_length-1

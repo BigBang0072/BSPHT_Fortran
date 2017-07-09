@@ -3,12 +3,12 @@ program sanity
     use BSPHT
     implicit none
     integer :: i,j,k
-    integer,parameter :: lat_division=8,bandwidth=lat_division/2,rad_division=2
+    integer,parameter :: lat_division=8,bandwidth=lat_division/2,rad_division=4
     real*8,parameter :: density=1.0,delta_r=1.0
     complex(8),dimension(0:lat_division-1,0:lat_division-1,0:rad_division-1) :: shells
     
     !Create a uniform density grid
-    call fill_the_mass(lat_division,rad_division,density,delta_r,shells)
+    call fill_the_density(lat_division,rad_division,density,delta_r,shells)
     !Printing the mass Density
     print *,"Printing the mass Density"
     do i=0,rad_division-1
@@ -52,7 +52,7 @@ program sanity
 end program sanity
 
 !We dont have to fill teh mass, we have to fill the density.So it has to be divided in actual data. CHANGE
-subroutine fill_the_mass(lat_division,rad_division,density,delta_r,shells)
+subroutine fill_the_density(lat_division,rad_division,density,delta_r,shells)
     implicit none
     integer,intent(in) :: lat_division,rad_division
     real*8,intent(in) :: density,delta_r
@@ -64,7 +64,12 @@ subroutine fill_the_mass(lat_division,rad_division,density,delta_r,shells)
     
     weight_norm=0.0
     do i=0,lat_division-1
+        !*********************IMPORTANT**************
+        !We have to fill density.
+        !In real problem we would have to convert mass to density then we have to divide what we multiplied to density here.
+        
         weight_norm=weight_norm+sin(pi*(2*i+1)/(4*(lat_division/2)))
+        
     end do
     
     do i=0,rad_division-1
@@ -73,11 +78,12 @@ subroutine fill_the_mass(lat_division,rad_division,density,delta_r,shells)
         do j=0,lat_division-1
             mass_latitude=mass_shell*sin(pi*(2*j+1)/(4*(lat_division/2)))/weight_norm
             do k=0,lat_division-1
-                shells(j,k,i)=cmplx(mass_latitude/lat_division,0.0)
+                !shells(j,k,i)=cmplx(mass_latitude/lat_division,0.0)
+                shells(j,k,i)=cmplx(density,0.0)     !We have to represrnt density in terms of Eigen function.
             end do
         end do
     end do
-end subroutine fill_the_mass
+end subroutine fill_the_density
 
 subroutine copy_data_to_file(lat_division,bandwidth,delta_r,rad_division,shells)
     implicit none
@@ -136,4 +142,5 @@ subroutine copy_data_to_file(lat_division,bandwidth,delta_r,rad_division,shells)
     end file 1
     rewind 1
     close(unit=1)
+    
 end subroutine copy_data_to_file
