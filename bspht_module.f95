@@ -27,12 +27,14 @@ subroutine naive_SpBessel_transform(bandwidth,lat_length,length,delta_r,signal_a
     end do
     
     call create_transfrom_matrix(length,bandwidth,r_values,k_values,super_transform_matrix)
-    !do i=0,length-1
-        !do j=0,length-1
-            !print *,super_transform_matrix(i,j,0)
-        !end do
+    
+    !print *,"Printing the super transform matrix"
+    do i=0,length-1
+        do j=0,length-1
+            !print *,super_transform_matrix(i,j,2)
+        end do
         !print *,"*******"
-    !end do
+    end do
     
     !Doing transform l by l for each m then puttin tehm in the same place.
     do i=0,lat_length-1 !m ka loop
@@ -652,18 +654,18 @@ subroutine aLegendre_transform_matrix(m,bWidth,lat_length,arg,transform_matrix)
     end if
     !******IMP******
     !Adding the normalization constant here only rather than multiplying it later in teh signal.
-    transform_matrix(abs(m),0:lat_length-1)=Pm_m(0:lat_length-1)*(((2*abs(m)+1)/(4*pi)/factorial(2*abs(m)))**(1.0/2.0))
+    transform_matrix(abs(m),0:lat_length-1)=Pm_m(0:lat_length-1)!*(((2*abs(m)+1)/(4*pi)/factorial(2*abs(m)))**(1.0/2.0))
     if(m==bWidth-1)then
         return
     end if
-    transform_matrix(abs(m)+1,0:lat_length-1)=Pm_m1(0:lat_length-1)*(((2*(abs(m)+1)+1)/(4*pi)/factorial(2*abs(m)+1))**(1.0/2.0))
+    transform_matrix(abs(m)+1,0:lat_length-1)=Pm_m1(0:lat_length-1)!*(((2*(abs(m)+1)+1)/(4*pi)/factorial(2*abs(m)+1))**(1.0/2.0))
     !highest bandwidth ie l=bWidth-1
     ex_recurs=(bWidth-1)-abs(m)-1
     !print *,ex_recurs
     do i=1,ex_recurs
         Pm_temp=(arg*(2*(abs(m)+i+1)-1)*Pm_m1-((abs(m)+i+1)+abs(m)-1)*Pm_m)/((abs(m)+i+1)-abs(m))
-        transform_matrix(abs(m)+1+i,0:lat_length-1)=Pm_temp(0:lat_length-1)*(((2*(abs(m)+i+1)+1)/(4*pi)*&
-                                                       factorial((abs(m)+i+1)-abs(m))/factorial((abs(m)+i+1)-abs(m)))**(1.0/2.0))
+        transform_matrix(abs(m)+1+i,0:lat_length-1)=Pm_temp(0:lat_length-1)!*(((2*(abs(m)+i+1)+1)/(4*pi)*&
+                                                       !factorial((abs(m)+i+1)-abs(m))/factorial((abs(m)+i+1)-abs(m)))**(1.0/2.0))
         Pm_m=Pm_m1
         Pm_m1=Pm_temp
     end do
