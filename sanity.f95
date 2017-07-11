@@ -3,10 +3,11 @@ program sanity
     use BSPHT
     implicit none
     integer :: i,j,k
-    integer,parameter :: lat_division=8,bandwidth=lat_division/2,rad_division=4
-    real*8,parameter :: density=1.0,delta_r=1.0
+    integer,parameter :: lat_division=16,bandwidth=lat_division/2,rad_division=80
+    real*8,parameter :: density=1.0,radius=5.0,delta_r=radius/(rad_division-0.5)
     complex(8),dimension(0:lat_division-1,0:lat_division-1,0:rad_division-1) :: shells
     
+    print *,"delta_r=",delta_r
     !Create a uniform density grid
     call fill_the_density(lat_division,rad_division,density,delta_r,shells)
     !Printing the mass Density
@@ -14,7 +15,7 @@ program sanity
     do i=0,rad_division-1
         do j=0,lat_division-1
             do k=0,lat_division-1
-                print *,"r = ",(i+1.0/2.0),"phi = ",j,"theta = ",k,"coeff = ",shells(k,j,i)
+                !print *,"r = ",(i+1.0/2.0)*delta_r,"phi = ",j,"theta = ",k,"coeff = ",shells(k,j,i)
             end do
         end do
     end do
@@ -28,8 +29,8 @@ program sanity
     print *,"Printing the Spherical Transform, for each radius"
     do i=0,rad_division-1
         do j=0,lat_division-1
-            do k=0,lat_division-1
-                print *,"r = ",(i+1.0/2.0),"m = ",j,"l = ",k,"coeff = ",shells(k,j,i)
+            do k=0,bandwidth-1
+                !print *,"r = ",(i+1.0/2.0)*delta_r,"m = ",j,"l = ",k,"coeff = ",shells(k,j,i)
             end do
         end do
     end do
@@ -43,7 +44,7 @@ program sanity
     print *,"Printing the Bessel-Spherical Transform, for each k,l,m"
     do i=0,rad_division-1
         do j=0,lat_division-1
-            do k=0,lat_division-1
+            do k=0,bandwidth-1
                 print *,"f = ",(i+1.0/2.0)/(rad_division-1.0/2.0)/(2*delta_r),"m = ",j,"l = ",k,"coeff = ",shells(k,j,i)
             end do
         end do
@@ -106,8 +107,8 @@ subroutine copy_data_to_file(lat_division,bandwidth,delta_r,rad_division,shells)
     8 format(a100)
     9 format(i3,f10.7)
     10 format(i3,i3,a1)
-    11 format(f10.7,a1,f10.7,a1)
-    12 format(f10.7,a1,f10.7)
+    11 format(f12.7,a1,f12.7,a1)
+    12 format(f12.7,a1,f12.7)
     
     do i=0,lat_division-1
         if(i<bandwidth)then
@@ -126,6 +127,7 @@ subroutine copy_data_to_file(lat_division,bandwidth,delta_r,rad_division,shells)
                     if(k==0)then
                         write(unit=1,fmt=10,advance='no'),j,m_val,":"
                     end if
+                    !print *,real(shells(j,i,k))
                     write(unit=1,fmt=11,advance='no'),real(shells(j,i,k)),",",imag(shells(j,i,k)),";"
                 else
                     write(unit=1,fmt=12,advance='yes'),real(shells(j,i,k)),",",imag(shells(j,i,k))

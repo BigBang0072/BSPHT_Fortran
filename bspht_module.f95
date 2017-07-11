@@ -62,13 +62,14 @@ subroutine create_transfrom_matrix(length,bandwidth,r_values,k_values,transform_
     real*8,dimension(0:length-1,0:length-1,0:bandwidth-1),intent(out) :: transform_matrix
     
     integer :: i,j,dummy
+    real*8,parameter :: pi=4*atan(1.0)
     real*8,dimension(0:bandwidth-1) :: temp_arr,dummy_arr
     
     do i=0,length-1
         do j=0,length-1
-            call sphj(bandwidth-1,k_values(i)*r_values(j),dummy,temp_arr,dummy_arr)
-            !print *,temp_arr
-            transform_matrix(i,j,0:bandwidth-1)=temp_arr
+            call sphj(bandwidth-1,k_values(i)*r_values(j),dummy,temp_arr,dummy_arr)!r_value variation -> in matrix. K-value  varies.|v
+            !print *,k_values(i),r_values(j)
+            transform_matrix(i,j,0:bandwidth-1)=temp_arr*(r_values(j)**2)*k_values(i)*((2/pi)**(1.0/2.0))
         end do
     end do
     
@@ -405,9 +406,9 @@ subroutine SPH_transform(lat_length,bWidth,signal_r)
     print *,"######## After FFT of latitudes"
     do i=0,lat_length-1
         do j=0,lat_length-1
-            print *,signal_r(i,j)
+            !print *,signal_r(i,j)
         end do
-        print *,"******"
+        !print *,"******"
     end do
     print *,"########"
     !now start the Shree Ganesh of our "Legendre" Transform.
@@ -417,6 +418,9 @@ subroutine SPH_transform(lat_length,bWidth,signal_r)
     !end do
     print *,"HIK"
     call naive_legendre_transform(lat_length,bWidth,cos(theta_j),signal_r)
+    
+    
+    
     !multiplying the final normalization constant after the 
     !constants directly into the transform matrix according to l and m.
     signal_r=signal_r*((2*pi)**(1.0/2.0)/(2*bWidth))
@@ -665,7 +669,9 @@ subroutine aLegendre_transform_matrix(m,bWidth,lat_length,arg,transform_matrix)
     do i=1,ex_recurs
         Pm_temp=(arg*(2*(abs(m)+i+1)-1)*Pm_m1-((abs(m)+i+1)+abs(m)-1)*Pm_m)/((abs(m)+i+1)-abs(m))
         transform_matrix(abs(m)+1+i,0:lat_length-1)=Pm_temp(0:lat_length-1)*(((2*(abs(m)+i+1)+1)/(4*pi)*&
-                                                       factorial((abs(m)+i+1)-abs(m))/factorial((abs(m)+i+1)-abs(m)))**(1.0/2.0))
+                                                       factorial((abs(m)+i+1)-abs(m))/factorial((abs(m)+i+1)+abs(m)))**(1.0/2.0))
+        !print *,factorial((abs(m)+i+1)-abs(m))
+        !print *,factorial((abs(m)+i+1)+abs(m))
         Pm_m=Pm_m1
         Pm_m1=Pm_temp
     end do
@@ -689,13 +695,13 @@ end subroutine make_theta_j
 
 !This is a subsidary function used in inner calculation of 
 !calculating Legendre polynomial.
-integer*8 function double_factorial(num)
+real*8 function double_factorial(num)
     implicit none
     integer :: i
-    integer*8 :: temp
+    real*8 :: temp
     integer,intent(in) :: num
     
-    temp=1
+    temp=1.0
     !  DEFINITION :   (-1)!! =1,  (0)!! =1
     do i=1,num
         if(mod(num,2)/=0 .and. mod(i,2)/=0)then
@@ -708,12 +714,12 @@ integer*8 function double_factorial(num)
     
 end function double_factorial
 
-integer*8 function factorial(num)
+real*8 function factorial(num)
     implicit none
     integer,intent(in) :: num
     integer :: i
     
-    factorial=1
+    factorial=1.0
     do i=1,num
         factorial=factorial*i
     end do
