@@ -69,7 +69,8 @@ subroutine create_transfrom_matrix(length,bandwidth,r_values,k_values,transform_
         do j=0,length-1
             call sphj(bandwidth-1,k_values(i)*r_values(j),dummy,temp_arr,dummy_arr)!r_value variation -> in matrix. K-value  varies.|v
             !print *,k_values(i),r_values(j)
-            transform_matrix(i,j,0:bandwidth-1)=temp_arr*(r_values(j)**2)*k_values(i)*((2/pi)**(1.0/2.0))
+            !wE ARE GOINT TO USE OTHER nor. and we will multiply it finally 1/N there only. Will do it here later.
+            transform_matrix(i,j,0:bandwidth-1)=temp_arr*(r_values(j)**2)*k_values(i)*((2/pi)**(1.0/2.0)) 
         end do
     end do
     

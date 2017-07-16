@@ -3,8 +3,8 @@ program sanity
     use BSPHT
     implicit none
     integer :: i,j,k
-    integer,parameter :: lat_division=16,bandwidth=lat_division/2,rad_division=80
-    real*8,parameter :: density=1.0,radius=5.0,delta_r=radius/(rad_division-0.5)
+    integer,parameter :: lat_division=16,bandwidth=lat_division/2,rad_division=25
+    real*8,parameter :: density=1.0,radius=20.0,delta_r=radius/(rad_division-0.5)
     complex(8),dimension(0:lat_division-1,0:lat_division-1,0:rad_division-1) :: shells
     
     print *,"delta_r=",delta_r
@@ -45,7 +45,7 @@ program sanity
     do i=0,rad_division-1
         do j=0,lat_division-1
             do k=0,bandwidth-1
-                print *,"f = ",(i+1.0/2.0)/(rad_division-1.0/2.0)/(2*delta_r),"m = ",j,"l = ",k,"coeff = ",shells(k,j,i)
+                !print *,"f = ",(i+1.0/2.0)/(rad_division-1.0/2.0)/(2*delta_r),"m = ",j,"l = ",k,"coeff = ",shells(k,j,i)
             end do
         end do
     end do
@@ -105,8 +105,8 @@ subroutine copy_data_to_file(lat_division,bandwidth,delta_r,rad_division,shells)
     !Now openeing the file to write the Spherical Transform data.
     open(unit=1,file=write_file,status='replace',form='formatted',action='write')
     8 format(a100)
-    9 format(i3,f10.7)
-    10 format(i3,i3,a1)
+    9 format(i5,f10.7)
+    10 format(i5,i5,a1)
     11 format(f12.7,a1,f12.7,a1)
     12 format(f12.7,a1,f12.7)
     
